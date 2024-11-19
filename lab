@@ -80,8 +80,27 @@ coef(full, 3)
 
 ------------------------------------------------------------------------
 #Demonstrate outlier detection
-day <- read.csv("C:\\Users\\DELL\\Downloads\\day.csv")
-View(day)
+# Set seed for reproducibility
+library(tidyr)
+
+set.seed(123)
+
+# Create a sample dataset
+day <- data.frame(
+  temp = rnorm(100, mean = 20, sd = 5),       # Random temperatures
+  hum = rnorm(100, mean = 60, sd = 10),        # Random humidity percentages
+  windspeed = rnorm(100, mean = 10, sd = 3)    # Random wind speeds
+)
+
+# Add some outliers
+day$temp[c(10, 20, 30)] <- c(40, 45, 50)      # Adding extreme temperatures
+day$hum[c(15, 25, 35)] <- c(10, 5, 0)         # Adding extreme humidity values
+day$windspeed[c(40, 50, 60)] <- c(25, 30, 35) # Adding extreme wind speeds
+
+# Add some missing values
+day$temp[c(5, 15)] <- NA
+day$hum[c(10, 20)] <- NA
+day$windspeed[c(30, 40)] <- NA
 
 sum(is.na(day))
 boxplot(day[,c("temp","hum","windspeed")])
@@ -97,6 +116,8 @@ for(i in c("hum","windspeed"))
 sum(is.na(data))
 day<-na.exclude(day)
 boxplot(day[,c("temp","hum","windspeed")])
+
+
 
 -------------------------------------------------------------------------
 #Perform analytics on any standard data set  4*4*3*3(3)*1(3)*1(3)*3(3)*1(2) Load necessary libraries
@@ -224,28 +245,46 @@ auc <- round(auc, 4)
 legend(.6, .4, auc, title = "AUC", cex = 1)
 
 -----------------------------------------------------------------------------
-#Construct decision tree for weather data setlibrary 5*1*3*2*5
 library(partykit)
 library(caTools)
-weatherdata <- read.csv("C:\\Users\\DELL\\Downloads\\seattle-weather.csv")
-head(weatherdata)
-str(weatherdata)
 
+# Set seed for reproducibility
+set.seed(123)
+
+# Create a sample weather dataset with some correlation
+weatherdata <- data.frame(
+  Temperature = rnorm(200, mean = 20, sd = 5),       # Random temperatures around 20 degrees
+  Humidity = rnorm(200, mean = 75, sd = 10),         # Random humidity percentages around 75%
+  WindSpeed = rnorm(200, mean = 10, sd = 3),         # Random wind speeds around 10 km/h
+  RainToday = sample(c("Yes", "No"), 200, replace = TRUE)  # Random yes/no for rain today
+)
+
+# Create the dependent variable 'weather' with some dependency on Humidity and Temperature
+weatherdata$weather <- with(weatherdata, ifelse(Humidity > 70 & Temperature < 22, "Yes", "No"))
+
+# Convert 'weather' to a factor
 weatherdata$weather <- as.factor(weatherdata$weather)
+weatherdata$RainToday<-as.factor(weatherdata$RainToday)
 
-split=sample.split(weatherdata$weather, SplitRatio=0.8)
-train=subset(weatherdata, split==TRUE)
-test=subset(weatherdata, split==FALSE)
+# Split the data into training and testing sets
+split <- sample.split(weatherdata$weather, SplitRatio = 0.8)
+train <- subset(weatherdata, split == TRUE)
+test <- subset(weatherdata, split == FALSE)
 
-model <- ctree(weather ~ precipitation + temp_max + temp_min + wind, data = train)
+# Fit the decision tree model
+model <- ctree(weather ~ RainToday+Temperature + Humidity + WindSpeed, data = train)
 plot(model)
 
+# Make predictions on the test set
 predict_model <- predict(model, test)
+
 mat <- table(test$weather, predict_model)
 print(mat)
-# Calculate the accuracy of the model
+
 accuracy <- sum(diag(mat)) / sum(mat)
 print(paste("Accuracy:", accuracy))
+
+
 
 ---------------------------------------------------------------
 #2*2*1(3)*1(4)*1(3)*2*1(5)*3*3
